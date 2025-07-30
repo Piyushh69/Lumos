@@ -1,7 +1,7 @@
 // src/utils/gemini.ts
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI("AIzaSyByeimreEWyoNnJh4_Jcq9VKBcBhOA5VLA"!);
+const genAI = new GoogleGenerativeAI(process.env.gemini_api_key!);
 
 interface GeminiResponse {
   text: string;
