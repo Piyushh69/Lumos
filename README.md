@@ -22,12 +22,13 @@ NaviHire revolutionizes HR operations by combining intelligent talent acquisitio
 ### Installation
 
 1. **Clone the repository**
-    git clone <repository-url>
+    git clone 
     cd navihire
 
 2. **Backend Setup**
     cd backend
-    pip install -r requirements.txt
+    run .\setup_env.bat
+    or simply : pip install -r requirements.txt
     cp .env.example .env
     Edit .env with your API keys
 

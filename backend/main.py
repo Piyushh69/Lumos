@@ -226,6 +226,7 @@
 #     print("API Docs: http://localhost:8000/docs")
 #     uvicorn.run(app, host="0.0.0.0", port=8000)
 
+from services import help_bot_service
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form, HTTPException, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -255,6 +256,10 @@ import serpapi
 import asyncio, re
 import google.generativeai as genai
 from datetime import datetime
+from services.auth_service import AuthService
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
 
 app = FastAPI(
     title="NaviHire - AI-Powered Talent & Travel Intelligence",
@@ -730,6 +735,28 @@ async def search_flights(request: dict):
             "note": f"Using fallback data - unexpected error: {str(e)}"
         }
 
+@app.post("/api/v1/help-bot/chat")
+async def help_bot_chat(request: dict):
+    """Handle help bot chat requests"""
+    try:
+        message = request.get("message", "")
+        context = request.get("context", {})
+        
+        if not message.strip():
+            return {
+                "response": "How can I help you with NaviHire today?",
+                "actions": []
+            }
+        
+        result = help_bot_service.process_help_request(message, context)
+        return result
+        
+    except Exception as e:
+        return {
+            "response": "I apologize, but I encountered an error. Please try again.",
+            "actions": []
+        }
+
 # def get_airport_code(city_name: str) -> str:
 #     """Get airport code from city name"""
 #     codes = {
@@ -950,6 +977,62 @@ async def upload_and_analyze_resumes(
     except Exception as e:
         print(f"💥 Resume upload processing failed: {e}")
         raise HTTPException(status_code=500, detail=f"Resume processing failed: {str(e)}")
+
+security = HTTPBearer()
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
+    """Get current authenticated user"""
+    auth_service = AuthService(db)
+    result = auth_service.verify_token(credentials.credentials)
+    
+    if not result.get("valid"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=result.get("message", "Invalid authentication"),
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    return result["user"]
+
+@app.post("/api/v1/auth/login")
+async def login(credentials: dict, db: Session = Depends(get_db)):
+    """User login endpoint"""
+    try:
+        email = credentials.get("email")
+        password = credentials.get("password")
+        
+        if not email or not password:
+            return {
+                "success": False,
+                "message": "Email and password are required"
+            }
+        
+        auth_service = AuthService(db)
+        result = auth_service.authenticate_user(email, password)
+        
+        return result
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Login failed: {str(e)}"
+        }
+
+@app.get("/api/v1/auth/verify")
+async def verify_token(current_user: dict = Depends(get_current_user)):
+    """Verify token and get user info"""
+    return {
+        "valid": True,
+        "user": current_user
+    }
+
+@app.post("/api/v1/auth/logout")
+async def logout():
+    """User logout endpoint"""
+    return {
+        "success": True,
+        "message": "Logged out successfully"
+    }
 
 
 # @app.websocket("/ws/chat/{user_id}")
