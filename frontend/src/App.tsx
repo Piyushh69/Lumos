@@ -454,7 +454,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocat
 import Dashboard from "./components/Dashboard";
 import ResumeUpload from "./components/ResumeUpload";
 import FlightSearch from "./components/FlightSearch";
-import JobGenerator from "./components/JobGenerator";
+import JobGenerator from "./components/tools/JDGenerator/JobGenerator";
 import CandidateMatching from "./components/CandidateMatching";
 import CandidateDatabase from "./components/CandidateDatabase";
 import InterviewScheduler from "./components/InterviewScheduler";
@@ -467,8 +467,9 @@ import HRMetrics from "./components/analytics/HRMetrics";
 import ROIAnalytics from "./components/analytics/ROIAnalytics";
 import TravelMetrics from "./components/analytics/TravelMetrics";
 import Login from "./components/auth/Login";
-import Header from "./components/common/Header";
+import Header from "./components/common/Header/Header";
 import HelpChatBot from "./components/common/HelpChatBot";
+import Footer from "./components/common/Footer/Footer";
 import "./index.css"; // Import the CSS file
 
 interface User {
@@ -639,7 +640,8 @@ const AppLayout: React.FC = () => {
             <Route path="/job-generator" element={<JobGenerator {...pageProps} />} />
             <Route path="/resume-upload" element={<ResumeUpload {...pageProps} />} />
             <Route path="/candidate-matching" element={<CandidateMatching {...pageProps} />} />
-            <Route path="/candidate-database" element={<CandidateDatabase {...pageProps} />} />
+            {/* <Route path="/candidate-database" element={<CandidateDatabase {...pageProps} />} /> */}
+            <Route path="/candidate-database" element={<CandidateDatabase />} />
             <Route path="/test-scheduler" element={<TestScheduler {...pageProps} />} />
             <Route path="/interview-scheduler" element={<InterviewScheduler {...pageProps} />} />
             <Route path="/email-automation" element={<EmailAutomation {...pageProps} />} />
@@ -675,6 +677,7 @@ const LoginPage: React.FC = () => {
 // Main App Component with Router
 const App: React.FC = () => {
   return (
+    <>
     <Router>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
@@ -688,6 +691,8 @@ const App: React.FC = () => {
         />
       </Routes>
     </Router>
+    <Footer/>
+    </>
   );
 };
 

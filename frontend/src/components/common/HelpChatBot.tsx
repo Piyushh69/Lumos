@@ -36,7 +36,7 @@ const HelpChatBot: React.FC<HelpChatBotProps> = ({ currentPage, userRole }) => {
       const welcomeMessage: ChatMessage = {
         id: generateId(),
         type: 'bot',
-        content: `👋 Hi! I'm your NaviHire assistant. I can help you with:
+        content: `👋 Hi! I'm Mini, your NaviHire assistant. I can help you with:
         
 • Navigate to any feature in the portal
 • Explain how to use specific tools
@@ -47,7 +47,6 @@ What would you like help with today?`,
         timestamp: new Date(),
         actions: [
           { label: '📄 Resume Upload Help', action: 'navigate', target: '/resume-upload' },
-          { label: '✈️ Flight Search Guide', action: 'navigate', target: '/flight-search' },
           { label: '📧 Email Automation', action: 'navigate', target: '/email-automation' },
           { label: '📝 Test Scheduler', action: 'navigate', target: '/test-scheduler' }
         ]
@@ -154,7 +153,7 @@ What would you like help with today?`,
         <div className={`chat-window ${isMinimized ? 'minimized' : ''}`}>
           <div className="chat-header">
             <div className="header-info">
-              <div className="bot-avatar">🤖</div>
+              <div className="bot-avatar">🌸</div>
               <div className="bot-details">
                 <h4>NaviHire Assistant</h4>
                 <span className="status">Online</span>

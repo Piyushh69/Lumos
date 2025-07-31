@@ -23,9 +23,10 @@ export const useWebSocket = (userId: string): UseWebSocketReturn => {
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'reconnecting'>('disconnected');
   const [messages, setMessages] = useState<WebSocketMessage[]>([]);
   const [lastActivity, setLastActivity] = useState<Date | null>(null);
-  
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
-  const heartbeatIntervalRef = useRef<NodeJS.Timeout>();
+
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
   const reconnectDelay = 3000; // 3 seconds
@@ -52,7 +53,7 @@ export const useWebSocket = (userId: string): UseWebSocketReturn => {
         setConnectionStatus('connected');
         setLastActivity(new Date());
         reconnectAttemptsRef.current = 0;
-        
+
         // Start heartbeat
         startHeartbeat(newSocket);
       };
@@ -73,7 +74,7 @@ export const useWebSocket = (userId: string): UseWebSocketReturn => {
         setSocket(null);
         setIsConnected(false);
         setConnectionStatus('disconnected');
-        
+
         // Clear heartbeat
         if (heartbeatIntervalRef.current) {
           clearInterval(heartbeatIntervalRef.current);
@@ -106,9 +107,9 @@ export const useWebSocket = (userId: string): UseWebSocketReturn => {
 
     reconnectAttemptsRef.current++;
     setConnectionStatus('reconnecting');
-    
+
     console.log(`🔄 Scheduling reconnect attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts} in ${reconnectDelay}ms`);
-    
+
     reconnectTimeoutRef.current = setTimeout(() => {
       connect();
     }, reconnectDelay * reconnectAttemptsRef.current); // Exponential backoff
@@ -120,7 +121,7 @@ export const useWebSocket = (userId: string): UseWebSocketReturn => {
         // Send ping message
         ws.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
         console.log('💓 Heartbeat sent');
-        
+
         // Check for idle timeout
         const now = new Date();
         if (lastActivity && (now.getTime() - lastActivity.getTime()) > idleTimeout) {
@@ -151,17 +152,17 @@ export const useWebSocket = (userId: string): UseWebSocketReturn => {
   const reconnect = useCallback(() => {
     console.log('🔄 Manual reconnection triggered');
     reconnectAttemptsRef.current = 0;
-    
+
     // Close existing connection
     if (socket) {
       socket.close(1000, 'Manual reconnect');
     }
-    
+
     // Clear timeouts
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
     }
-    
+
     // Reconnect
     setTimeout(connect, 100);
   }, [socket, connect]);

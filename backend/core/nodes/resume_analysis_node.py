@@ -7,7 +7,7 @@ import os
 class ResumeAnalysisNode:
     def __init__(self):
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash-lite",
             google_api_key=os.getenv("GEMINI_API_KEY")
         )
         self.resume_parser = ResumeParser()

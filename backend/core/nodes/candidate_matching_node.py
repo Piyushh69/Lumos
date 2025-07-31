@@ -10,7 +10,7 @@ import json
 class CandidateMatchingNode:
     def __init__(self):
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash-lite",
             temperature=0.7,
             google_api_key=os.getenv("GEMINI_API_KEY")
         )

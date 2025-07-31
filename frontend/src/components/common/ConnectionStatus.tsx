@@ -15,35 +15,30 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
     switch (status) {
       case 'connected':
         return {
-          icon: '🟢',
           text: 'Connected',
           color: '#10b981',
           showReconnect: false
         };
       case 'connecting':
         return {
-          icon: '🟡',
           text: 'Connecting...',
           color: '#f59e0b',
           showReconnect: false
         };
       case 'reconnecting':
         return {
-          icon: '🔄',
           text: 'Reconnecting...',
           color: '#f59e0b',
           showReconnect: false
         };
       case 'disconnected':
         return {
-          icon: '🔴',
           text: 'Disconnected',
           color: '#ef4444',
           showReconnect: true
         };
       default:
         return {
-          icon: '⚪',
           text: 'Unknown',
           color: '#6b7280',
           showReconnect: true
@@ -59,7 +54,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   return (
     <div className="connection-status">
       <div className="status-indicator">
-        <span className="status-icon">{statusInfo.icon}</span>
+        {/* <span className="status-icon">{statusInfo.icon}</span> */}
         <span 
           className="status-text"
           style={{ color: statusInfo.color }}
@@ -72,7 +67,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
             onClick={onReconnect}
             title="Click to reconnect"
           >
-            🔄 Reconnect
+            Reconnect
           </button>
         )}
       </div>

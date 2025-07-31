@@ -18,7 +18,7 @@ class GeminiResumeParser:
         if self.gemini_api_key:
             try:
                 self.llm = ChatGoogleGenerativeAI(
-                    model="gemini-2.0-flash",
+                    model="gemini-2.5-flash-lite",
                     temperature=0.3,
                     google_api_key=self.gemini_api_key
                 )

@@ -109,9 +109,9 @@ class EmailAutomationService:
             final_content = self._add_signature_and_addons(rendered_content["body_html"])
             
             # Enhanced logging
-            print(f"📧 Sending email to: {recipient_email}")
-            print(f"📧 Subject: {rendered_content['subject']}")
-            print(f"📧 Template: {template.name}")
+            print(f"Sending email to: {recipient_email}")
+            print(f"Subject: {rendered_content['subject']}")
+            print(f"Template: {template.name}")
             
             # Send email with enhanced service
             success = self.email_automation.send_email(
@@ -126,9 +126,9 @@ class EmailAutomationService:
                 template.usage_count += 1
                 template.last_used = datetime.utcnow()
                 self.db.commit()
-                print(f"✅ Email sent successfully to {recipient_email}")
+                print(f"Email sent successfully to {recipient_email}")
             else:
-                print(f"❌ Email sending failed to {recipient_email}")
+                print(f"Email sending failed to {recipient_email}")
             
             return {
                 "success": success,
@@ -138,7 +138,7 @@ class EmailAutomationService:
             }
             
         except Exception as e:
-            print(f"❌ Email service error: {str(e)}")
+            print(f"Email service error: {str(e)}")
             return {"success": False, "error": str(e)}
 
     def send_bulk_email(self, campaign_data: Dict) -> Dict:

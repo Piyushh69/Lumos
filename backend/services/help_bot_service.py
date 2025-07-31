@@ -7,10 +7,16 @@ import re
 
 class HelpBotService:
     def __init__(self):
+        api_key = os.getenv("GEMINI_API_KEY")
+        print("api_key",api_key)
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY environment variable is not set.")
+
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash-lite",
+            # model="gemini-2.5-flash-lite",
             temperature=0.7,
-            google_api_key=os.getenv("GEMINI_API_KEY")
+            google_api_key=api_key
         )
         
         self.navigation_map = {
@@ -60,7 +66,7 @@ class HelpBotService:
             }
         }
     
-    def process_help_request(self, message: str, context: Dict) -> Dict:
+    def process_help_request(self, message: str, context) -> Dict:
         """Process help request and generate response"""
         try:
             # Analyze user intent
@@ -229,16 +235,15 @@ What would you like to learn about?"""
         """Handle unknown requests"""
         response = """I'm here to help you with NaviHire! I can assist with:
 
-🔍 **Navigation** - "Take me to resume upload" or "Show me email automation"
-❓ **How-to Guides** - "How do I upload resumes?" or "Help me search flights"  
-💡 **General Questions** - Ask about any NaviHire feature or functionality
+🔍 Navigation - "Take me to resume upload" or "Show me email automation"
+❓ How-to Guides - "How do I upload resumes?" or "Help me search flights"  
+💡 General Questions - Ask about any NaviHire feature or functionality
 
 What would you like help with?"""
         
         actions = [
             {"label": "📄 Resume Upload", "action": "navigate", "target": "/resume-upload"},
             {"label": "📧 Email Automation", "action": "navigate", "target": "/email-automation"},
-            {"label": "✈️ Flight Search", "action": "navigate", "target": "/flight-search"},
             {"label": "📊 Dashboard", "action": "navigate", "target": "/dashboard"}
         ]
         

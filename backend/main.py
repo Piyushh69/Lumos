@@ -1,231 +1,3 @@
-# from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form
-# from fastapi.staticfiles import StaticFiles
-# from fastapi.middleware.cors import CORSMiddleware
-# import json
-# import uuid
-# from core.agents.supervisor import NaviHireSupervisor
-# from core.graph.state import NaviHireState
-# from langchain_core.messages import HumanMessage
-# from typing import List
-# import os
-# from fastapi.responses import FileResponse
-# from pathlib import Path
-
-# app = FastAPI(
-#     title="NaviHire - AI-Powered Talent & Travel Intelligence",
-#     description="Revolutionizing HR and Corporate Travel with AI",
-#     version="1.0.0"
-# )
-
-# app.add_middleware(
-#    CORSMiddleware,
-#    allow_origins=["*"],  # Allow all origins
-#    allow_credentials=True,
-#    allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
-#    allow_headers=["*"],  # Allow all headers
-# )
-
-# # Mount frontend
-# try:
-#     app.mount("/static", StaticFiles(directory="../frontend/build/static"), name="static")
-# except:
-#     print("Frontend build not found")
-
-# # Initialize supervisor
-# supervisor = NaviHireSupervisor()
-
-# class ConnectionManager:
-#     def __init__(self):
-#         self.active_connections: dict = {}
-    
-#     async def connect(self, websocket: WebSocket, user_id: str):
-#         await websocket.accept()
-#         self.active_connections[user_id] = websocket
-    
-#     def disconnect(self, user_id: str):
-#         if user_id in self.active_connections:
-#             del self.active_connections[user_id]
-
-# manager = ConnectionManager()
-
-# @app.get("/")
-# async def root():
-#     return FileResponse(Path(__file__).parent.parent / "frontend" / "public" / "index.html")
-
-# @app.post("/api/v1/resumes/upload")
-# async def upload_resumes(files: List[UploadFile] = File(...), job_id: str = Form(...)):
-#     """Upload and process resumes"""
-#     uploaded_resumes = []
-    
-#     for file in files:
-#         content = await file.read()
-#         uploaded_resumes.append({
-#             "filename": file.filename,
-#             "content": content,
-#             "size": len(content)
-#         })
-    
-#     # Process with supervisor
-#     state = NaviHireState(
-#         messages=[HumanMessage(content=f"Process {len(files)} resumes for job {job_id}")],
-#         user_id="api_user",
-#         session_id=str(uuid.uuid4()),
-#         user_role="hr_manager",
-#         current_job_id=job_id,
-#         uploaded_resumes=uploaded_resumes,
-#         candidate_matches=[],
-#         job_description=None,
-#         travel_requests=[],
-#         flight_results=None,
-#         travel_policy=None,
-#         current_task="resume_analysis",
-#         next_action="resume_analysis",
-#         task_progress={},
-#         hr_metrics={},
-#         travel_metrics={},
-#         conversation_history=[],
-#         user_preferences={}
-#     )
-    
-#     result = supervisor.graph.invoke(state)
-    
-#     return {
-#         "status": "success",
-#         "processed_resumes": len(files),
-#         "analysis_results": result.get("task_progress", {}).get("resume_analysis", {}),
-#         "message": "Resumes processed successfully"
-#     }
-
-# @app.get("/{full_path:path}")
-# async def serve_frontend(full_path: str):
-#     # Correct path to your React build directory
-#     frontend_path = Path(__file__).parent.parent / "frontend" / "build"
-#     index_file = frontend_path / "index.html"
-    
-#     if index_file.exists():
-#         return FileResponse(index_file)
-    
-#     return {"error": "Frontend build not found"}
-
-
-# @app.websocket("/ws/chat/{user_id}")
-# async def websocket_endpoint(websocket: WebSocket, user_id: str):
-#     await manager.connect(websocket, user_id)
-    
-#     # Send welcome message
-#     await websocket.send_text(json.dumps({
-#         "type": "message",
-#         "content": "Welcome to NaviHire! I can help you with resume analysis, candidate matching, and travel optimization. How can I assist you today?",
-#         "agent": "system"
-#     }))
-    
-#     try:
-#         while True:
-#             data = await websocket.receive_text()
-#             message_data = json.loads(data)
-#             user_message = message_data.get("message", "")
-            
-#             if not user_message.strip():
-#                 continue
-            
-#             # Create state
-#             state = NaviHireState(
-#                 messages=[HumanMessage(content=user_message)],
-#                 user_id=user_id,
-#                 session_id=str(uuid.uuid4()),
-#                 user_role="hr_manager",
-#                 current_job_id=None,
-#                 uploaded_resumes=[],
-#                 candidate_matches=[],
-#                 job_description=None,
-#                 travel_requests=[],
-#                 flight_results=None,
-#                 travel_policy=None,
-#                 current_task=None,
-#                 next_action=None,
-#                 task_progress={},
-#                 hr_metrics={},
-#                 travel_metrics={},
-#                 conversation_history=[],
-#                 user_preferences={}
-#             )
-            
-#             # Process with supervisor
-#             result = supervisor.graph.invoke(state)
-            
-#             # Send response
-#             response = result["messages"][-1].content
-#             await websocket.send_text(json.dumps({
-#                 "type": "message",
-#                 "content": response,
-#                 "agent": result.get("current_task", "general"),
-#                 "task_progress": result.get("task_progress", {})
-#             }))
-            
-#     except WebSocketDisconnect:
-#         manager.disconnect(user_id)
-
-# @app.post("/api/v1/flights/search")
-# async def search_flights(request: dict):
-#     try:
-#         origin = request.get("origin")
-#         destination = request.get("destination") 
-#         date = request.get("date")
-        
-#         # Call SerpAPI from backend (no CORS issues)
-#         import requests
-        
-#         serpapi_params = {
-#             "engine": "google_flights",
-#             "departure_id": get_airport_code(origin),
-#             "arrival_id": get_airport_code(destination), 
-#             "outbound_date": date,
-#             "currency": "INR",
-#             "hl": "en",
-#             "api_key": "0a9b0abe47e6107ce612664a0e582e40fc7cc91bdd1b42181cd56b2073c83fa0"
-#         }
-        
-#         response = requests.get("https://serpapi.com/search", params=serpapi_params, timeout=10)
-        
-#         if response.status_code == 200:
-#             data = response.json()
-#             if data.get("best_flights"):
-#                 # Format the results
-#                 formatted_flights = []
-#                 for flight in data["best_flights"]:
-#                     formatted_flights.append({
-#                         "id": f"serp_{len(formatted_flights)}",
-#                         "airline": flight["flights"][0]["airline"],
-#                         "price": f"₹{flight['price']:,}",
-#                         "departure_time": flight["flights"][0]["departure_airport"]["time"],
-#                         "arrival_time": flight["flights"][0]["arrival_airport"]["time"],
-#                         "duration": flight["total_duration"],
-#                         "stops": len(flight["flights"]) - 1,
-#                         "bookingUrl": f"https://www.google.com/travel/flights",
-#                         "source": "serpapi"
-#                     })
-                
-#                 return {"success": True, "flight_results": formatted_flights}
-        
-#         return {"success": False, "error": "No flights found"}
-        
-#     except Exception as e:
-#         return {"success": False, "error": str(e)}
-
-# def get_airport_code(city_name: str) -> str:
-#     codes = {
-#         "mumbai": "BOM", "delhi": "DEL", "bangalore": "BLR", 
-#         "bengaluru": "BLR", "chennai": "MAA", "hyderabad": "HYD"
-#     }
-#     return codes.get(city_name.lower(), city_name.upper()[:3])
-
-# if __name__ == "__main__":
-#     import uvicorn
-#     print("Starting NaviHire - AI-Powered Talent & Travel Intelligence Platform")
-#     print("Dashboard: http://localhost:8000")
-#     print("API Docs: http://localhost:8000/docs")
-#     uvicorn.run(app, host="0.0.0.0", port=8000)
-
 from services import help_bot_service
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form, HTTPException, Depends
 from fastapi.staticfiles import StaticFiles
@@ -282,6 +54,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
 def get_db():
     db = get_database_session()
     try:
@@ -335,7 +114,7 @@ async def startup_event():
                     username="admin",
                     email="admin@navikenz.com",
                     full_name="NaviHire Administrator",
-                    password_hash="hashed_password_12345",  # Use proper password hashing
+                    hashed_password=hash_password("1827"),
                     role="admin",
                     department="IT",
                     is_active=True
@@ -748,7 +527,10 @@ async def help_bot_chat(request: dict):
                 "actions": []
             }
         
-        result = help_bot_service.process_help_request(message, context)
+        service = help_bot_service.HelpBotService()
+        result = service.process_help_request(message, context)
+
+        # result = help_bot_service.HelpBotService.process_help_request(message, context)
         return result
         
     except Exception as e:
@@ -909,6 +691,185 @@ def get_fallback_flights(origin: str, destination: str) -> List[dict]:
 from config.database import get_database_session, close_database_session
 from sqlalchemy.orm import Session
 
+# Add these endpoints to your main.py
+
+@app.post("/api/v1/jobs")
+async def create_job(job_data: dict, db: Session = Depends(get_db)):
+    """Create a new job"""
+    try:
+        print(f"📝 Creating job: {job_data.get('title')}")
+        
+        job = Job(**job_data)
+        db.add(job)
+        db.commit()
+        db.refresh(job)
+        
+        print(f"✅ Job created with ID: {job.id}")
+        
+        return {
+            "success": True,
+            "job": {
+                "id": job.id,
+                "title": job.title,
+                "department": job.department,
+                "status": job.status,
+                "created_at": job.created_at.isoformat() if job.created_at else None
+            },
+            "message": "Job created successfully"
+        }
+        
+    except Exception as e:
+        print(f"❌ Error creating job: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to create job: {str(e)}")
+
+@app.get("/api/v1/jobs")
+async def get_jobs(db: Session = Depends(get_db)):
+    """Get all jobs"""
+    try:
+        print("📋 Fetching all jobs...")
+        jobs = db.query(Job).order_by(Job.created_at.desc()).all()
+        
+        result = {
+            "success": True,
+            "jobs": [
+                {
+                    "id": j.id,
+                    "title": j.title,
+                    "department": j.department,
+                    "location": j.location,
+                    "employment_type": j.employment_type,
+                    "description": j.description,
+                    "responsibilities": j.responsibilities,
+                    "required_qualifications": j.required_qualifications,
+                    "preferred_qualifications": j.preferred_qualifications,
+                    "required_skills": j.required_skills,
+                    "preferred_skills": j.preferred_skills,
+                    "experience_level": j.experience_level,
+                    "min_experience_years": j.min_experience_years,
+                    "max_experience_years": j.max_experience_years,
+                    "salary_min": j.salary_min,
+                    "salary_max": j.salary_max,
+                    "currency": j.currency,
+                    "benefits": j.benefits,
+                    "status": j.status,
+                    "priority": j.priority,
+                    "ai_generated": j.ai_generated,
+                    "positions_available": j.positions_available,
+                    "positions_filled": j.positions_filled,
+                    "created_at": j.created_at.isoformat() if j.created_at else None,
+                    "updated_at": j.updated_at.isoformat() if j.updated_at else None,
+                    "published_at": j.published_at.isoformat() if j.published_at else None,
+                    "deadline": j.deadline.isoformat() if j.deadline else None
+                }
+                for j in jobs
+            ]
+        }
+        
+        print(f"✅ Found {len(jobs)} jobs")
+        return result
+        
+    except Exception as e:
+        print(f"❌ Error fetching jobs: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch jobs: {str(e)}")
+
+@app.get("/api/v1/jobs/{job_id}")
+async def get_job(job_id: int, db: Session = Depends(get_db)):
+    """Get single job details"""
+    try:
+        job = db.query(Job).filter(Job.id == job_id).first()
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
+        
+        return {
+            "success": True,
+            "job": {
+                "id": job.id,
+                "title": job.title,
+                "department": job.department,
+                "location": job.location,
+                "employment_type": job.employment_type,
+                "description": job.description,
+                "responsibilities": job.responsibilities,
+                "required_qualifications": job.required_qualifications,
+                "preferred_qualifications": job.preferred_qualifications,
+                "required_skills": job.required_skills,
+                "preferred_skills": job.preferred_skills,
+                "experience_level": job.experience_level,
+                "min_experience_years": job.min_experience_years,
+                "max_experience_years": job.max_experience_years,
+                "salary_min": job.salary_min,
+                "salary_max": job.salary_max,
+                "currency": job.currency,
+                "benefits": job.benefits,
+                "status": job.status,
+                "priority": job.priority,
+                "ai_generated": job.ai_generated,
+                "generation_prompt": job.generation_prompt,
+                "positions_available": job.positions_available,
+                "positions_filled": job.positions_filled,
+                "created_at": job.created_at.isoformat() if job.created_at else None,
+                "updated_at": job.updated_at.isoformat() if job.updated_at else None,
+                "published_at": job.published_at.isoformat() if job.published_at else None,
+                "deadline": job.deadline.isoformat() if job.deadline else None
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch job: {str(e)}")
+
+@app.put("/api/v1/jobs/{job_id}")
+async def update_job(job_id: int, job_data: dict, db: Session = Depends(get_db)):
+    """Update job"""
+    try:
+        job = db.query(Job).filter(Job.id == job_id).first()
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
+        
+        # Update fields
+        for key, value in job_data.items():
+            if hasattr(job, key):
+                setattr(job, key, value)
+        
+        db.commit()
+        db.refresh(job)
+        
+        return {
+            "success": True,
+            "message": "Job updated successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to update job: {str(e)}")
+
+@app.delete("/api/v1/jobs/{job_id}")
+async def delete_job(job_id: int, db: Session = Depends(get_db)):
+    """Delete job"""
+    try:
+        job = db.query(Job).filter(Job.id == job_id).first()
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
+        
+        db.delete(job)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Job deleted successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete job: {str(e)}")
+
+
 @app.post("/api/v1/resumes/upload")
 async def upload_and_analyze_resumes(
     files: List[UploadFile] = File(...), 
@@ -1035,6 +996,197 @@ async def logout():
     }
 
 
+@app.post("/api/v1/candidates")
+async def create_candidate(candidate_data: dict, db: Session = Depends(get_db)):
+    """Create a new candidate"""
+    try:
+        print(f"📝 Creating candidate: {candidate_data}")
+        
+        # Extract skills array and count
+        skills_data = candidate_data.get("skills", [])
+        if isinstance(skills_data, int):
+            # If skills_count was sent, create empty skills array
+            skills_array = []
+            skills_count = skills_data
+        else:
+            # If skills array was sent, count them
+            skills_array = skills_data if isinstance(skills_data, list) else []
+            skills_count = len(skills_array)
+        
+        # Create candidate record using your model fields
+        candidate = Candidate(
+            full_name=candidate_data.get("candidate_name", "Unknown"),
+            email=candidate_data.get("email", ""),
+            resume_filename=candidate_data.get("filename", ""),
+            status=candidate_data.get("status", "new"),
+            overall_score=float(candidate_data.get("score", 0)),
+            skills=skills_array,  # Store as JSON array
+            experience_years=float(candidate_data.get("experience_years", 0))
+        )
+        
+        db.add(candidate)
+        db.commit()
+        db.refresh(candidate)
+        
+        print(f"✅ Candidate created with ID: {candidate.id}")
+        
+        return {
+            "success": True,
+            "candidate_id": candidate.id,
+            "message": "Candidate created successfully"
+        }
+        
+    except Exception as e:
+        print(f"❌ Error creating candidate: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to create candidate: {str(e)}")
+
+@app.get("/api/v1/candidates")
+async def get_candidates(db: Session = Depends(get_db)):
+    """Get all candidates"""
+    try:
+        print("📋 Fetching all candidates...")
+        candidates = db.query(Candidate).order_by(Candidate.created_at.desc()).all()
+        
+        result = {
+            "success": True,
+            "candidates": [
+                {
+                    "candidate_id": c.id,
+                    "candidate_name": c.full_name,  # Map full_name to candidate_name
+                    "email": c.email,
+                    "filename": c.resume_filename,
+                    "status": c.status,
+                    "score": c.overall_score,  # Map overall_score to score
+                    "skills_count": len(c.skills) if c.skills else 0,  # Count skills array
+                    "experience_years": c.experience_years,
+                    "created_at": c.created_at.isoformat() if c.created_at else None,
+                    # Include additional fields that your model has
+                    "phone": c.phone,
+                    "location": c.location,
+                    "technical_score": c.technical_score,
+                    "experience_score": c.experience_score,
+                    "education": c.education,
+                    "certifications": c.certifications,
+                    "is_available": c.is_available
+                }
+                for c in candidates
+            ]
+        }
+        
+        print(f"✅ Found {len(candidates)} candidates")
+        return result
+        
+    except Exception as e:
+        print(f"❌ Error fetching candidates: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch candidates: {str(e)}")
+
+@app.delete("/api/v1/candidates/{candidate_id}")
+async def delete_candidate(candidate_id: int, db: Session = Depends(get_db)):
+    """Delete a candidate"""
+    try:
+        print(f"🗑️ Deleting candidate with ID: {candidate_id}")
+        
+        candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+        if not candidate:
+            raise HTTPException(status_code=404, detail="Candidate not found")
+        
+        db.delete(candidate)
+        db.commit()
+        
+        print(f"✅ Candidate {candidate_id} deleted successfully")
+        
+        return {
+            "success": True,
+            "message": "Candidate deleted successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error deleting candidate: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete candidate: {str(e)}")
+
+# Optional: Get single candidate details
+@app.get("/api/v1/candidates/{candidate_id}")
+async def get_candidate(candidate_id: int, db: Session = Depends(get_db)):
+    """Get single candidate details"""
+    try:
+        candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+        if not candidate:
+            raise HTTPException(status_code=404, detail="Candidate not found")
+        
+        return {
+            "success": True,
+            "candidate": {
+                "candidate_id": candidate.id,
+                "candidate_name": candidate.full_name,
+                "email": candidate.email,
+                "phone": candidate.phone,
+                "location": candidate.location,
+                "filename": candidate.resume_filename,
+                "resume_url": candidate.resume_url,
+                "resume_text": candidate.resume_text,
+                "status": candidate.status,
+                "score": candidate.overall_score,
+                "technical_score": candidate.technical_score,
+                "experience_score": candidate.experience_score,
+                "skills": candidate.skills,
+                "skills_count": len(candidate.skills) if candidate.skills else 0,
+                "experience_years": candidate.experience_years,
+                "education": candidate.education,
+                "certifications": candidate.certifications,
+                "is_available": candidate.is_available,
+                "source": candidate.source,
+                "created_at": candidate.created_at.isoformat() if candidate.created_at else None,
+                "last_contacted": candidate.last_contacted.isoformat() if candidate.last_contacted else None
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch candidate: {str(e)}")
+
+# Update candidate endpoint for status changes, etc.
+@app.put("/api/v1/candidates/{candidate_id}")
+async def update_candidate(candidate_id: int, update_data: dict, db: Session = Depends(get_db)):
+    """Update candidate information"""
+    try:
+        candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+        if not candidate:
+            raise HTTPException(status_code=404, detail="Candidate not found")
+        
+        # Update allowed fields
+        if "status" in update_data:
+            candidate.status = update_data["status"]
+        if "candidate_name" in update_data:
+            candidate.full_name = update_data["candidate_name"]
+        if "email" in update_data:
+            candidate.email = update_data["email"]
+        if "phone" in update_data:
+            candidate.phone = update_data["phone"]
+        if "location" in update_data:
+            candidate.location = update_data["location"]
+        if "is_available" in update_data:
+            candidate.is_available = update_data["is_available"]
+        
+        db.commit()
+        db.refresh(candidate)
+        
+        return {
+            "success": True,
+            "message": "Candidate updated successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to update candidate: {str(e)}")
+
+
 # @app.websocket("/ws/chat/{user_id}")
 # async def websocket_endpoint(websocket: WebSocket, user_id: str):
 #     await manager.connect(websocket, user_id)
@@ -1122,7 +1274,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
         while True:
             # Wait for message with timeout
             try:
-                data = await asyncio.wait_for(websocket.receive_text(), timeout=60.0)
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=160.0)
                 message_data = json.loads(data)
                 
                 # Handle ping messages

@@ -282,18 +282,18 @@
 
 import asyncio
 from typing import List, Dict, Optional
-from database.repositories.candidate_repo import CandidateRepository
-from database.repositories.job_repo import JobRepository
-from core.tools.gemini_resume_parser import GeminiResumeParser  # Updated import
+from sqlalchemy.exc import IntegrityError
+from database.models.candidate import Candidate, JobApplication
+from database.models.job import Job
+from core.tools.gemini_resume_parser import GeminiResumeParser
 from core.tools.email_automation import EmailAutomation
 from datetime import datetime
+
 
 class HRService:
     def __init__(self, db_session):
         self.db = db_session
-        self.candidate_repo = CandidateRepository(db_session)
-        self.job_repo = JobRepository(db_session)
-        self.resume_parser = GeminiResumeParser()  # Use Gemini parser
+        self.resume_parser = GeminiResumeParser()
         self.email_automation = EmailAutomation()
     
     async def process_resume_batch(self, resumes: List[Dict], job_id: Optional[int] = None) -> Dict:
@@ -334,20 +334,31 @@ class HRService:
                 
                 print(f"👤 Candidate data prepared: {candidate_data['full_name']} ({candidate_data.get('email', 'No email')})")
                 
-                # Check if candidate already exists
+                # Check if candidate already exists by email
                 existing_candidate = None
                 if candidate_data.get("email"):
-                    existing_candidate = self.candidate_repo.get_candidate_by_email(candidate_data["email"])
+                    existing_candidate = self.db.query(Candidate).filter(
+                        Candidate.email == candidate_data["email"]
+                    ).first()
                 
                 if existing_candidate:
                     print(f"🔄 Updating existing candidate: {existing_candidate.id}")
-                    candidate = self.candidate_repo.update_candidate(
-                        existing_candidate.id, 
-                        candidate_data
-                    )
+                    # Update existing candidate
+                    for key, value in candidate_data.items():
+                        if hasattr(existing_candidate, key) and value is not None:
+                            setattr(existing_candidate, key, value)
+                    
+                    existing_candidate.updated_at = datetime.utcnow()
+                    self.db.commit()
+                    self.db.refresh(existing_candidate)
+                    candidate = existing_candidate
                 else:
                     print(f"➕ Creating new candidate")
-                    candidate = self.candidate_repo.create_candidate(candidate_data)
+                    # Create new candidate
+                    candidate = Candidate(**candidate_data)
+                    self.db.add(candidate)
+                    self.db.commit()
+                    self.db.refresh(candidate)
                 
                 results["processed_resumes"].append({
                     "candidate_id": candidate.id,
@@ -366,20 +377,42 @@ class HRService:
                 # Create job application if job_id provided
                 if job_id and candidate:
                     try:
-                        application = self.candidate_repo.create_job_application({
-                            "candidate_id": candidate.id,
-                            "job_id": job_id,
-                            "status": "applied",
-                            "application_date": datetime.utcnow()
-                        })
-                        print(f"📋 Created job application: {application.id}")
+                        # Check if application already exists
+                        existing_application = self.db.query(JobApplication).filter(
+                            JobApplication.candidate_id == candidate.id,
+                            JobApplication.job_id == job_id
+                        ).first()
+                        
+                        if not existing_application:
+                            application = JobApplication(
+                                candidate_id=candidate.id,
+                                job_id=job_id,
+                                status="applied",
+                                application_date=datetime.utcnow()
+                            )
+                            self.db.add(application)
+                            self.db.commit()
+                            print(f"📋 Created job application: {application.id}")
+                        else:
+                            print(f"📋 Job application already exists: {existing_application.id}")
+                            
                     except Exception as e:
                         print(f"⚠️ Failed to create job application: {e}")
+                        self.db.rollback()
                 
                 print(f"✅ Successfully processed: {candidate.full_name}")
                 
+            except IntegrityError as e:
+                print(f"💫 Database integrity error for {resume_data['filename']}: {e}")
+                self.db.rollback()
+                results["failed_resumes"].append({
+                    "filename": resume_data["filename"],
+                    "error": "Duplicate candidate or database constraint violation",
+                    "error_type": "IntegrityError"
+                })
             except Exception as e:
                 print(f"❌ Error processing {resume_data['filename']}: {e}")
+                self.db.rollback()
                 results["failed_resumes"].append({
                     "filename": resume_data["filename"],
                     "error": str(e),
@@ -408,11 +441,11 @@ class HRService:
         return results
     
     def _convert_parsed_data_to_candidate(self, parsed_data: Dict, resume_data: Dict) -> Dict:
-        """Convert parsed resume data to candidate database format"""
+        """Convert parsed resume data to candidate database format using your Candidate model fields"""
         personal_info = parsed_data.get("personal_info", {})
         skills_data = parsed_data.get("skills", {})
         
-        # Combine all skills
+        # Combine all skills into a list for JSON field
         all_skills = []
         all_skills.extend(skills_data.get("technical_skills", []))
         all_skills.extend(skills_data.get("programming_languages", []))
@@ -427,6 +460,7 @@ class HRService:
         experience_score = min(parsed_data.get("total_experience_years", 0) * 20, 100)
         overall_score = self._calculate_overall_score(parsed_data)
         
+        # Map to your Candidate model fields
         candidate_data = {
             "full_name": personal_info.get("full_name", "Unknown Name"),
             "email": personal_info.get("email"),
@@ -434,16 +468,17 @@ class HRService:
             "location": personal_info.get("location"),
             "resume_filename": resume_data["filename"],
             "resume_text": parsed_data.get("raw_text", ""),
-            "skills": unique_skills,
+            "skills": unique_skills,  # JSON array field
             "experience_years": float(parsed_data.get("total_experience_years", 0)),
-            "education": parsed_data.get("education", []),
-            "certifications": parsed_data.get("certifications", []),
-            "overall_score": overall_score,
-            "technical_score": technical_score,
-            "experience_score": experience_score,
+            "education": parsed_data.get("education", []),  # JSON array field
+            "certifications": parsed_data.get("certifications", []),  # JSON array field
+            "overall_score": float(overall_score),
+            "technical_score": float(technical_score),
+            "experience_score": float(experience_score),
             "status": "new",
+            "is_available": True,
             "source": "resume_upload",
-            "source_details": {
+            "source_details": {  # JSON field
                 "upload_method": "batch_upload",
                 "file_size": resume_data.get("size", 0),
                 "content_type": resume_data.get("content_type"),
@@ -487,8 +522,85 @@ class HRService:
         
         return min(score, 100.0)
     
-    # Keep existing methods for job matching, etc.
     async def _match_candidates_to_job(self, job_id: int) -> Dict:
         """Match processed candidates to job"""
-        # Implementation would use the matching node
-        return {"matches": [], "job_id": job_id}
+        try:
+            # Get job details
+            job = self.db.query(Job).filter(Job.id == job_id).first()
+            if not job:
+                return {"matches": [], "job_id": job_id, "error": "Job not found"}
+            
+            # Get recent candidates for this job
+            recent_candidates = self.db.query(Candidate).join(JobApplication).filter(
+                JobApplication.job_id == job_id
+            ).all()
+            
+            matches = []
+            for candidate in recent_candidates:
+                match_score = self._calculate_match_score(candidate, job)
+                matches.append({
+                    "candidate_id": candidate.id,
+                    "candidate_name": candidate.full_name,
+                    "match_score": match_score,
+                    "overall_score": candidate.overall_score,
+                    "key_skills": candidate.skills[:5] if candidate.skills else []
+                })
+            
+            # Sort by match score
+            matches.sort(key=lambda x: x["match_score"], reverse=True)
+            
+            return {
+                "matches": matches,
+                "job_id": job_id,
+                "job_title": job.title if hasattr(job, 'title') else 'Unknown',
+                "total_matches": len(matches)
+            }
+            
+        except Exception as e:
+            return {"matches": [], "job_id": job_id, "error": str(e)}
+    
+    def _calculate_match_score(self, candidate: Candidate, job: Job) -> float:
+        """Calculate how well a candidate matches a job"""
+        # Basic matching logic - you can enhance this
+        base_score = candidate.overall_score or 0
+        
+        # Add bonus for experience
+        if hasattr(job, 'required_experience') and job.required_experience:
+            if candidate.experience_years >= job.required_experience:
+                base_score += 10
+        
+        # Add bonus for relevant skills (if job has required skills)
+        if hasattr(job, 'required_skills') and job.required_skills and candidate.skills:
+            job_skills = [skill.lower() for skill in job.required_skills]
+            candidate_skills = [skill.lower() for skill in candidate.skills]
+            skill_matches = len(set(job_skills) & set(candidate_skills))
+            skill_bonus = min(skill_matches * 5, 20)
+            base_score += skill_bonus
+        
+        return min(base_score, 100.0)
+    
+    # Additional helper methods
+    def get_candidate_by_id(self, candidate_id: int) -> Optional[Candidate]:
+        """Get candidate by ID"""
+        return self.db.query(Candidate).filter(Candidate.id == candidate_id).first()
+    
+    def get_candidates_by_job(self, job_id: int) -> List[Candidate]:
+        """Get all candidates for a specific job"""
+        return self.db.query(Candidate).join(JobApplication).filter(
+            JobApplication.job_id == job_id
+        ).all()
+    
+    def update_candidate_status(self, candidate_id: int, status: str) -> bool:
+        """Update candidate status"""
+        try:
+            candidate = self.db.query(Candidate).filter(Candidate.id == candidate_id).first()
+            if candidate:
+                candidate.status = status
+                candidate.updated_at = datetime.utcnow()
+                self.db.commit()
+                return True
+            return False
+        except Exception as e:
+            print(f"❌ Error updating candidate status: {e}")
+            self.db.rollback()
+            return False

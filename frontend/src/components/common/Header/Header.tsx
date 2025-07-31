@@ -52,8 +52,9 @@
 // export default Header;
 
 import React, { useState, useRef, useEffect } from 'react';
-import ConnectionStatus from './ConnectionStatus';
-import { useWebSocket } from '../../hooks/useWebSocket';
+import ConnectionStatus from '../ConnectionStatus';
+import { useWebSocket } from '../../../hooks/useWebSocket';
+import "./Header.css"
 
 interface User {
   name: string;
@@ -197,7 +198,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
                   </div>
 
                   {/* Menu Items */}
-                  <div className="dropdown-menu-section">
+                  {/* <div className="dropdown-menu-section">
                     <button className="dropdown-menu-item">
                       <svg className="dropdown-menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -221,8 +222,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
                     </button>
                   </div>
 
-                  {/* Divider */}
-                  <div className="dropdown-divider"></div>
+                  <div className="dropdown-divider"></div> */}
 
                   {/* Logout */}
                   <button
