@@ -1,11 +1,10 @@
-# NaviHire - AI-Powered Talent & Travel Intelligence Platform
+# NaviHire - AI-Powered Talent Acquisition Platform
 
 ## Overview
 NaviHire revolutionizes HR operations by combining intelligent talent acquisition with corporate travel optimization in a unified AI-powered platform.
 
 ## Features
 - AI-powered resume analysis and candidate matching
-- Intelligent flight search and travel optimization
 - Real-time HR analytics and insights
 - Automated workflow management
 - Conversational AI interface
