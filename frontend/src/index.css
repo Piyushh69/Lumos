@@ -2768,3 +2768,223 @@ body {
 .JD-FormInput{
   height: 3rem;
 }
+
+/* Magic Sparkle Effects for Max AI Assistant */
+.ai-section {
+  position: relative;
+  margin-top: 20px;
+  padding: 16px 0;
+  /* border-top: 2px solid rgba(102, 126, 234, 0.2); */
+  /* background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%); */
+  border-radius: 12px;
+}
+
+.ai-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 12px;
+}
+
+.ai-icon {
+  font-size: 16px;
+  animation: brainPulse 2s ease-in-out infinite;
+}
+
+@keyframes brainPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* Magic Sparkle Container */
+.magic-sparkle-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.sparkles-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.sparkle {
+  position: absolute;
+  font-size: 8px;
+  animation: sparkleFloat 3s ease-in-out infinite;
+  opacity: 0;
+}
+
+@keyframes sparkleFloat {
+  0%, 100% { 
+    opacity: 0; 
+    transform: translateY(0px) rotate(0deg) scale(0.5);
+  }
+  50% { 
+    opacity: 1; 
+    transform: translateY(-10px) rotate(180deg) scale(1);
+  }
+}
+
+/* Max AI Button Styles */
+.ai-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  color: #667eea;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.ai-button:hover {
+  /* background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%); */
+  border-color: rgba(102, 126, 234, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+.ai-button.active {
+  /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
+  color: white;
+  border-color: #667eea;
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.max-icon {
+  font-size: 18px;
+  animation: robotBounce 2s ease-in-out infinite;
+  color: plum ;
+}
+
+@keyframes robotBounce {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  25% { transform: translateY(-2px) rotate(-5deg); }
+  75% { transform: translateY(-1px) rotate(5deg); }
+}
+
+.max-label {
+  flex: 1;
+  position: relative;
+  z-index: 3;
+
+  background: linear-gradient(135deg, rgba(102, 126, 234, 1), rgba(118, 75, 162, 1));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+
+/* Magic Glow Effect */
+.magic-glow {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, 
+    transparent 30%, 
+    rgba(255, 255, 255, 0.1) 50%, 
+    transparent 70%);
+  border-radius: inherit;
+  opacity: 0;
+  animation: magicSweep 4s linear infinite;
+}
+
+@keyframes magicSweep {
+  0% { 
+    transform: translateX(-100%) skewX(-15deg); 
+    opacity: 0; 
+  }
+  50% { 
+    opacity: 1; 
+  }
+  100% { 
+    transform: translateX(200%) skewX(-15deg); 
+    opacity: 0; 
+  }
+}
+
+/* Enhanced sparkles for active state */
+.magic-sparkle-container.active .sparkle {
+  animation-duration: 1.5s;
+  font-size: 10px;
+}
+
+.magic-sparkle-container.active .ai-button {
+  animation: activeGlow 2s ease-in-out infinite;
+}
+
+@keyframes activeGlow {
+  0%, 100% { 
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4); 
+  }
+  50% { 
+    box-shadow: 0 8px 35px rgba(102, 126, 234, 0.6), 
+                0 0 20px rgba(102, 126, 234, 0.3); 
+  }
+}
+
+/* Special hover effects for AI section */
+.ai-section:hover .ai-section-title .ai-icon {
+  animation-duration: 1s;
+}
+
+.ai-section:hover .sparkle {
+  animation-duration: 2s;
+  opacity: 0.8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .ai-button {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  
+  .max-icon {
+    font-size: 16px;
+  }
+  
+  .sparkle {
+    font-size: 6px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .ai-section {
+    /* background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); */
+    border-top-color: rgba(102, 126, 234, 0.3);
+  }
+  
+  .ai-button {
+    color: #a0aec0;
+  }
+  
+  .ai-button:hover {
+    color: #667eea;
+  }
+}

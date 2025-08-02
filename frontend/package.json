@@ -6,6 +6,7 @@
     "@google/generative-ai": "^0.24.1",
     "antd": "^5.26.7",
     "build": "^0.1.4",
+    "date-fns": "^4.1.0",
     "docx": "^9.5.1",
     "formik": "^2.4.6",
     "html2canvas": "^1.4.1",
