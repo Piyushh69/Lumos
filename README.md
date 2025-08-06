@@ -1,7 +1,7 @@
 # NaviHire - AI-Powered Talent Acquisition Platform
 
 ## Overview
-NaviHire revolutionizes HR operations by combining intelligent talent acquisition with corporate travel optimization in a unified AI-powered platform.
+NaviHire revolutionises HR operations by combining intelligent talent acquisition with a unified, AI-powered platform.
 
 ## Features
 - AI-powered resume analysis and candidate matching
@@ -78,8 +78,6 @@ Visit `http://localhost:8000/docs` for interactive API documentation.
     Generate job descriptions
 
     Test candidate matching
-
-    Try flight search functionality
 
     Frontend development:
 
