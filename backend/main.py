@@ -21,6 +21,7 @@ from core.graph.state import NaviHireState
 from langchain_core.messages import HumanMessage
 from typing import List
 import os
+import uvicorn
 from pathlib import Path
 import requests
 from requests.adapters import HTTPAdapter
@@ -38,9 +39,12 @@ from services.email_scheduler_service import EmailSchedulerService
 import uuid
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+PORT = int(os.getenv("PORT", 8000))
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
 app = FastAPI(
-    title="NaviHire - AI-Powered Talent & Travel Intelligence",
-    description="Revolutionizing HR and Corporate Travel with AI",
+    title="NaviHire - AI-Powered Talent Acquisition Platform",
+    description="Revolutionizing HR and Talent Acquisition with AI",
     version="1.0.0"
 )
 
@@ -52,7 +56,8 @@ app.add_middleware(
         "http://localhost:8000", 
         "http://127.0.0.1:3000",
         "http://127.0.0.1:8000",
-        "*"
+        "https://*.railway.app",
+        "*" if ENVIRONMENT == "development" else "https://*.railway.app"
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -73,20 +78,19 @@ def get_db():
     finally:
         close_database_session(db)
 
-# Mount frontend static files
-frontend_build_path = Path(__file__).parent.parent / "frontend" / "build"
+frontend_build_path = Path(__file__).parent / "frontend" / "dist"
 if frontend_build_path.exists():
-    app.mount("/static", StaticFiles(directory=str(frontend_build_path / "static")), name="static")
-    print(f"✅ Frontend build found at: {frontend_build_path}")
+    app.mount("/static", StaticFiles(directory=str(frontend_build_path / "assets")), name="static")
+    print(f"Frontend build found at: {frontend_build_path}")
 else:
-    print(f"⚠️  Frontend build not found at: {frontend_build_path}")
+    print(f"Frontend build not found at: {frontend_build_path}")
 
 # Initialize supervisor with error handling
 try:
     supervisor = NaviHireSupervisor()
-    print("✅ NaviHire Supervisor initialized successfully")
+    print("NaviHire Supervisor initialized successfully")
 except Exception as e:
-    print(f"❌ Error initializing supervisor: {e}")
+    print(f"Error initializing supervisor: {e}")
     supervisor = None
 
 class ConnectionManager:
@@ -1903,9 +1907,15 @@ async def serve_frontend(full_path: str):
     })
 
 if __name__ == "__main__":
-    import uvicorn
-    print("🚀 Starting NaviHire - AI-Powered Talent & Travel Intelligence Platform")
-    print("📊 Dashboard: http://localhost:8000")
-    print("📚 API Docs: http://localhost:8000/docs")
-    print("🔧 Health Check: http://localhost:8000/api/health")
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    print("Starting NaviHire - AI-Powered Talent Acquisition Platform")
+    print(f"Environment: {ENVIRONMENT}")
+    print(f"Dashboard: http://0.0.0.0:{PORT}")
+    print(f"API Docs: http://0.0.0.0:{PORT}/docs")
+    print(f"Health Check: http://0.0.0.0:{PORT}/api/health")
+    
+    uvicorn.run(
+        "main:app", 
+        host="0.0.0.0", 
+        port=PORT, 
+        reload=ENVIRONMENT == "development"
+    )
