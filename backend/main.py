@@ -1913,9 +1913,16 @@ if __name__ == "__main__":
     print(f"API Docs: http://0.0.0.0:{PORT}/docs")
     print(f"Health Check: http://0.0.0.0:{PORT}/api/health")
     
-    uvicorn.run(
-        "main:app", 
-        host="0.0.0.0", 
-        port=PORT, 
-        reload=ENVIRONMENT == "development"
-    )
+    # Only run uvicorn programmatically in development
+    # In production (Render), let the start command handle uvicorn
+    if ENVIRONMENT == "development":
+        uvicorn.run(
+            "main:app", 
+            host="0.0.0.0", 
+            port=PORT, 
+            reload=True
+        )
+    else:
+        print("🏭 Production mode: Server will be started by deployment platform")
+        print("⚡ Ready for deployment platform to start uvicorn")
+
